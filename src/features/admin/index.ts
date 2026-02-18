@@ -1,0 +1,6 @@
+export { AdminDashboard } from './Dashboard'
+export { UserManagement } from './UserManagement'
+export { JobManagement } from './JobManagement'
+export { ApplicationAnalytics } from './ApplicationAnalytics'
+export { RecruiterProfile } from './RecruiterProfile'
+export { JobApplicants } from './JobApplicantsAdmin'
