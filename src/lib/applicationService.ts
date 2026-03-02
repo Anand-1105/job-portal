@@ -15,18 +15,19 @@ export interface ApplicationData {
 export async function submitApplication(data: ApplicationData) {
     const { data: application, error } = await supabase
         .from('applications')
-        .insert({
-            job_id: data.jobId,
-            candidate_id: data.candidateId,
-            full_name: data.fullName,
-            email: data.email,
-            phone: data.phone,
-            years_experience: data.yearsExperience,
-            relevant_experience: data.relevantExperience,
-            resume_text: data.resumeText,
-            cover_letter: data.coverLetter,
-            status: 'pending'
-        })
+        .insert([
+            {
+                job_id: data.jobId,
+                candidate_id: data.candidateId,
+                full_name: data.fullName,
+                email: data.email,
+                phone: data.phone,
+                years_experience: data.yearsExperience,
+                relevant_experience: data.relevantExperience,
+                resume_text: data.resumeText,
+                cover_letter: data.coverLetter,
+            } as any
+        ])
         .select()
         .single()
 

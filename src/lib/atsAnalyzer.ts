@@ -71,8 +71,7 @@ function generateNGrams(text: string): string[] {
     return ngrams
 }
 
-/**
- * Extract matched skills from text using the skill database
+/*Extract matched skills from text using the skill database
  */
 export function extractSkills(text: string): SkillDefinition[] {
     const normalized = normalizeText(text)

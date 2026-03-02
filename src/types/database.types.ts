@@ -34,6 +34,7 @@ export interface Database {
                     headline?: string | null
                     created_at?: string
                 }
+                Relationships: any[]
             }
             jobs: {
                 Row: {
@@ -72,6 +73,7 @@ export interface Database {
                     requirements?: string | null
                     created_at?: string
                 }
+                Relationships: any[]
             }
             applications: {
                 Row: {
@@ -116,7 +118,20 @@ export interface Database {
                     status?: 'pending' | 'shortlisted' | 'rejected'
                     applied_at?: string
                 }
+                Relationships: any[]
             }
+        }
+        Views: {
+            [_ in never]: never
+        }
+        Functions: {
+            [_ in never]: never
+        }
+        Enums: {
+            [_ in never]: never
+        }
+        CompositeTypes: {
+            [_ in never]: never
         }
     }
 }
