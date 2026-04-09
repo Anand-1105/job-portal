@@ -67,7 +67,7 @@ export function ApplicationModal({
           .from('candidate_profiles')
           .select('resume_text, skills')
           .eq('candidate_id', candidateId)
-          .single()
+          .single() as any
         if (cp?.resume_text) {
           setFormData(prev => ({
             ...prev,

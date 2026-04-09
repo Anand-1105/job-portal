@@ -224,8 +224,8 @@ export function VideoInterview() {
             ) : (
               <Button 
                 onClick={stopRecording} 
-                variant="destructive"
-                className="flex-1"
+                variant="outline"
+                className="flex-1 bg-red-600 hover:bg-red-500 text-white border-red-600"
               >
                 <StopCircle className="w-4 h-4 mr-2" /> Finish Recording
               </Button>

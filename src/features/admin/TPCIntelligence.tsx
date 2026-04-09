@@ -7,7 +7,7 @@ interface Candidate {
   id: string; name: string; tier: string; overall_score: number
   interview_score: number; video_tech: number; video_comm: number
   placement_probability: number; segment: string; intervention: string
-  application_count: number; avg_compatibility: number
+  application_count: number; avg_compatibility: number; proctoring?: any
 }
 
 const SEGMENT_CONFIG: Record<string, { color: string; icon: any; bg: string }> = {

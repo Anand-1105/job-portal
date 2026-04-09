@@ -6,6 +6,7 @@
 -- 1. Add missing columns to existing jobs table
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS hiring_manager_email text;
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS requirements text;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS source_url text;
 
 -- 2. Candidate skill profile
 CREATE TABLE IF NOT EXISTS candidate_profiles (
@@ -36,6 +37,7 @@ CREATE TABLE IF NOT EXISTS readiness_results (
   overall_score integer,
   tier          text CHECK (tier IN ('ready', 'partial', 'not_ready')),
   skill_scores  jsonb,           -- {"React": 82, "Python": 45}
+  proctoring    jsonb,           -- {"faceMissingCount": 0, ...}
   assessed_at   timestamptz DEFAULT now()
 );
 

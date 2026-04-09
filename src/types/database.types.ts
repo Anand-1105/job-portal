@@ -47,6 +47,8 @@ export interface Database {
                     salary_range: string | null
                     status: 'open' | 'closed'
                     requirements: string | null
+                    hiring_manager_email: string | null
+                    source_url: string | null
                     created_at: string
                 }
                 Insert: {
@@ -59,6 +61,8 @@ export interface Database {
                     salary_range?: string | null
                     status?: 'open' | 'closed'
                     requirements?: string | null
+                    hiring_manager_email?: string | null
+                    source_url?: string | null
                     created_at?: string
                 }
                 Update: {
@@ -71,6 +75,8 @@ export interface Database {
                     salary_range?: string | null
                     status?: 'open' | 'closed'
                     requirements?: string | null
+                    hiring_manager_email?: string | null
+                    source_url?: string | null
                     created_at?: string
                 }
                 Relationships: any[]
@@ -117,6 +123,126 @@ export interface Database {
                     cover_letter?: string | null
                     status?: 'pending' | 'shortlisted' | 'rejected'
                     applied_at?: string
+                }
+                Relationships: any[]
+            }
+            candidate_profiles: {
+                Row: {
+                    id: string
+                    candidate_id: string
+                    skills: string[]
+                    domain_interests: string[]
+                    resume_text: string | null
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    candidate_id: string
+                    skills?: string[]
+                    domain_interests?: string[]
+                    resume_text?: string | null
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    candidate_id?: string
+                    skills?: string[]
+                    domain_interests?: string[]
+                    resume_text?: string | null
+                    updated_at?: string
+                }
+                Relationships: any[]
+            }
+            assessments: {
+                Row: {
+                    id: string
+                    candidate_id: string
+                    skill: string
+                    questions: Json
+                    answers: Json | null
+                    score: number | null
+                    status: 'pending' | 'completed'
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    candidate_id: string
+                    skill: string
+                    questions: Json
+                    answers?: Json | null
+                    score?: number | null
+                    status?: 'pending' | 'completed'
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    candidate_id?: string
+                    skill?: string
+                    questions?: Json
+                    answers?: Json | null
+                    score?: number | null
+                    status?: 'pending' | 'completed'
+                    created_at?: string
+                }
+                Relationships: any[]
+            }
+            readiness_results: {
+                Row: {
+                    id: string
+                    candidate_id: string
+                    overall_score: number | null
+                    tier: 'ready' | 'partial' | 'not_ready' | null
+                    skill_scores: Json | null
+                    proctoring: Json | null
+                    assessed_at: string
+                }
+                Insert: {
+                    id?: string
+                    candidate_id: string
+                    overall_score?: number | null
+                    tier?: 'ready' | 'partial' | 'not_ready' | null
+                    skill_scores?: Json | null
+                    proctoring?: Json | null
+                    assessed_at?: string
+                }
+                Update: {
+                    id?: string
+                    candidate_id?: string
+                    overall_score?: number | null
+                    tier?: 'ready' | 'partial' | 'not_ready' | null
+                    skill_scores?: Json | null
+                    proctoring?: Json | null
+                    assessed_at?: string
+                }
+                Relationships: any[]
+            }
+            job_compatibility: {
+                Row: {
+                    id: string
+                    candidate_id: string
+                    job_id: string
+                    score: number | null
+                    reasoning: string | null
+                    hiring_manager_email: string | null
+                    computed_at: string
+                }
+                Insert: {
+                    id?: string
+                    candidate_id: string
+                    job_id: string
+                    score?: number | null
+                    reasoning?: string | null
+                    hiring_manager_email?: string | null
+                    computed_at?: string
+                }
+                Update: {
+                    id?: string
+                    candidate_id?: string
+                    job_id?: string
+                    score?: number | null
+                    reasoning?: string | null
+                    hiring_manager_email?: string | null
+                    computed_at?: string
                 }
                 Relationships: any[]
             }
