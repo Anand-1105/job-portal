@@ -30,6 +30,14 @@ import { CandidateProfile } from '@/features/candidate/Profile'
 import { CreateJob } from '@/features/recruiter/CreateJob'
 import { JobApplicants } from '@/features/recruiter/JobApplicants'
 import { ATSChecker } from '@/features/candidate/ATSChecker'
+import { ReadinessForm } from '@/features/candidate/ReadinessForm'
+import { ReadinessTest } from '@/features/candidate/ReadinessTest'
+import { ReadinessResult } from '@/features/candidate/ReadinessResult'
+import { TPCIntelligence } from '@/features/admin/TPCIntelligence'
+import { RoadmapChat } from '@/features/candidate/RoadmapChat'
+import { MyRoadmaps } from '@/features/candidate/MyRoadmaps'
+import { InterviewBot } from '@/features/candidate/InterviewBot'
+import { VideoInterview } from '@/features/candidate/VideoInterview'
 
 function Layout({ children }: { children: React.ReactNode }) {
     return (
@@ -166,6 +174,18 @@ function AnimatedRoutes() {
                         </ProtectedRoute>
                     }
                 />
+
+                {/* AI Career Coach Routes */}
+                <Route path="/readiness" element={<ProtectedRoute allowedRoles={['candidate']}><ReadinessForm /></ProtectedRoute>} />
+                <Route path="/readiness/test" element={<ProtectedRoute allowedRoles={['candidate']}><ReadinessTest /></ProtectedRoute>} />
+                <Route path="/readiness/result" element={<ProtectedRoute allowedRoles={['candidate']}><ReadinessResult /></ProtectedRoute>} />
+                <Route path="/admin/tpc" element={<ProtectedRoute allowedRoles={['admin']}><TPCIntelligence /></ProtectedRoute>} />
+
+                {/* New AI Features */}
+                <Route path="/roadmap" element={<ProtectedRoute allowedRoles={['candidate']}><RoadmapChat /></ProtectedRoute>} />
+                <Route path="/my-roadmaps" element={<ProtectedRoute allowedRoles={['candidate']}><MyRoadmaps /></ProtectedRoute>} />
+                <Route path="/interview" element={<ProtectedRoute allowedRoles={['candidate']}><InterviewBot /></ProtectedRoute>} />
+                <Route path="/video-interview" element={<ProtectedRoute allowedRoles={['candidate']}><VideoInterview /></ProtectedRoute>} />
 
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />

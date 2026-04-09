@@ -1,9 +1,9 @@
-import { Button } from '@/components/ui/Button'
-import { MapPin, Briefcase, DollarSign, Clock, Sparkles } from 'lucide-react'
-import { Database } from '@/types/database.types'
-import { Link } from 'react-router-dom'
+import { Button } from "@/components/ui/Button"
+import { MapPin, Briefcase, DollarSign, Clock, Sparkles, Mail, Linkedin } from "lucide-react"
+import { Database } from "@/types/database.types"
+import { Link } from "react-router-dom"
 
-type Job = Database['public']['Tables']['jobs']['Row']
+type Job = Database["public"]["Tables"]["jobs"]["Row"] & { source_url?: string }
 
 interface JobCardProps {
     job: Job
@@ -11,86 +11,57 @@ interface JobCardProps {
     isApplied?: boolean
     showApplyButton?: boolean
     showViewDetailsButton?: boolean
+    compatibilityScore?: number
+    scoresLoading?: boolean
+    hiringManagerEmail?: string
 }
 
-export function JobCard({
-    job,
-    onApply,
-    isApplied = false,
-    showApplyButton = true,
-    showViewDetailsButton = true
-}: JobCardProps) {
+export function JobCard({ job, onApply, isApplied = false, showApplyButton = true, showViewDetailsButton = true, compatibilityScore, scoresLoading = false, hiringManagerEmail }: JobCardProps) {
+    const hasLinkedIn = !!(job as any).source_url
+
     return (
         <div className="group relative overflow-hidden">
-            {/* Gradient hover effect */}
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-2xl" />
-
             <div className="relative bg-surface p-6 rounded-xl border border-border group-hover:border-purple-500/50 transition-all duration-300 group-hover:shadow-2xl group-hover:shadow-purple-500/10 group-hover:-translate-y-1">
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
                             {isApplied ? (
-                                <span className="px-3 py-1 bg-green-500/20 border border-green-500/30 text-green-300 rounded-full text-xs font-semibold flex items-center gap-1">
-                                    <Sparkles className="w-3 h-3" />
-                                    Applied
-                                </span>
+                                <span className="px-3 py-1 bg-green-500/20 border border-green-500/30 text-green-300 rounded-full text-xs font-semibold flex items-center gap-1"><Sparkles className="w-3 h-3" />Applied</span>
                             ) : (
-                                <span className="px-3 py-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 text-purple-300 rounded-full text-xs font-semibold capitalize">
-                                    {job.type}
-                                </span>
+                                <span className="px-3 py-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 text-purple-300 rounded-full text-xs font-semibold capitalize">{job.type}</span>
+                            )}
+                            {scoresLoading ? (
+                                <div className="w-16 h-5 bg-white/10 animate-pulse rounded-full" />
+                            ) : compatibilityScore !== undefined ? (
+                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${compatibilityScore >= 70 ? "bg-green-500/20 text-green-400 border border-green-500/30" : compatibilityScore >= 40 ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"}`}>{compatibilityScore}% match</span>
+                            ) : null}
+                            {hiringManagerEmail && (
+                                <span className="px-2 py-0.5 text-xs rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center gap-1"><Mail className="w-3 h-3" />HM Email</span>
+                            )}
+                            {hasLinkedIn && (
+                                <span className="px-2 py-0.5 text-xs rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center gap-1"><Linkedin className="w-3 h-3" />Easy Apply</span>
                             )}
                         </div>
-                        <h3 className="text-xl font-bold text-foreground group-hover:text-purple-300 transition-colors mb-1">
-                            {job.title}
-                        </h3>
-                        <p className="text-muted font-medium">Company Name</p>
+                        <h3 className="text-xl font-bold text-foreground group-hover:text-purple-300 transition-colors mb-1">{job.title}</h3>
+                        <p className="text-muted font-medium">Company</p>
                     </div>
                 </div>
-
-                <p className="text-muted mb-6 line-clamp-2">
-                    {job.description}
-                </p>
-
+                <p className="text-muted mb-6 line-clamp-2">{job.description}</p>
                 <div className="flex flex-wrap gap-4 text-sm text-muted mb-6">
-                    <div className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4 text-purple-400" />
-                        {job.location}
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <Briefcase className="w-4 h-4 text-purple-400" />
-                        {job.type}
-                    </div>
-                    {job.salary_range && (
-                        <div className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4 text-green-400" />
-                            {job.salary_range}
-                        </div>
-                    )}
-                    <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4 text-blue-400" />
-                        Posted {new Date(job.created_at).toLocaleDateString()}
-                    </div>
+                    <div className="flex items-center gap-1"><MapPin className="w-4 h-4 text-purple-400" />{job.location}</div>
+                    <div className="flex items-center gap-1"><Briefcase className="w-4 h-4 text-purple-400" />{job.type}</div>
+                    {job.salary_range && <div className="flex items-center gap-1"><DollarSign className="w-4 h-4 text-green-400" />{job.salary_range}</div>}
+                    <div className="flex items-center gap-1"><Clock className="w-4 h-4 text-blue-400" />Posted {new Date(job.created_at).toLocaleDateString()}</div>
                 </div>
-
                 <div className="flex gap-2">
                     {showApplyButton && (
-                        <Button
-                            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 border-0 shadow-lg shadow-purple-500/20"
-                            onClick={() => onApply?.(job.id)}
-                            disabled={isApplied}
-                        >
-                            {isApplied ? 'Application Sent' : 'Apply Now'}
+                        <Button className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 border-0 shadow-lg shadow-purple-500/20" onClick={() => onApply?.(job.id)} disabled={isApplied}>
+                            {isApplied ? "Application Sent" : "Apply Now"}
                         </Button>
                     )}
                     {showViewDetailsButton && (
-                        <Link to={`/jobs/${job.id}`}>
-                            <Button
-                                variant="outline"
-                                className="border-border hover:border-purple-500/50 hover:bg-surface"
-                            >
-                                View Details
-                            </Button>
-                        </Link>
+                        <Link to={`/jobs/${job.id}`}><Button variant="outline" className="border-border hover:border-purple-500/50 hover:bg-surface">View Details</Button></Link>
                     )}
                 </div>
             </div>

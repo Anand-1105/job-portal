@@ -2,9 +2,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
-import { MapPin, Briefcase, DollarSign, Clock, Building2, ArrowLeft, CheckCircle } from 'lucide-react'
+import { MapPin, Briefcase, DollarSign, Clock, Building2, ArrowLeft, CheckCircle, Wand2, Mail, Copy, Check } from 'lucide-react'
 import { Database } from '@/types/database.types'
 import { useAuth } from '@/features/auth'
+import { aiService } from '@/lib/aiService'
 
 type Job = Database['public']['Tables']['jobs']['Row']
 
@@ -16,6 +17,14 @@ export function JobDetail() {
     const [loading, setLoading] = useState(true)
     const [isApplied, setIsApplied] = useState(false)
     const [applying, setApplying] = useState(false)
+
+    // AI actions state
+    const [tailoring, setTailoring] = useState(false)
+    const [tailoredResume, setTailoredResume] = useState<string | null>(null)
+    const [generatingEmail, setGeneratingEmail] = useState(false)
+    const [applyingLinkedin, setApplyingLinkedin] = useState(false)
+    const [coldEmail, setColdEmail] = useState<{ subject: string; body: string; hiring_manager_email?: string } | null>(null)
+    const [copied, setCopied] = useState(false)
 
     useEffect(() => {
         fetchJob()
@@ -49,7 +58,7 @@ export function JobDetail() {
             .select('id')
             .eq('job_id', id)
             .eq('candidate_id', user.id)
-            .single()
+            .maybeSingle()
 
         setIsApplied(!!data)
     }
@@ -81,6 +90,84 @@ export function JobDetail() {
             setIsApplied(true)
         }
         setApplying(false)
+    }
+
+    async function handleAutoApplyLinkedIn() {
+        if (!user || !id) return
+        
+        // Improve URL detection logic
+        let jobUrl = (job as any)?.source_url || null
+        
+        if (!jobUrl || !jobUrl.includes('linkedin.com')) {
+            const urlMatch = job?.description.match(/https?:\/\/(www\.)?linkedin\.com\/jobs\/view\/(\d+)/i) || 
+                             job?.description.match(/https?:\/\/[^\s]+linkedin[^\s]+/i)
+            jobUrl = urlMatch ? urlMatch[0] : null
+        }
+        
+        // Manual Fallback if still no URL
+        if (!jobUrl) {
+            const manualUrl = window.prompt("We couldn't find a LinkedIn URL for this job. Please paste the LinkedIn Job URL below to start the bot:")
+            if (!manualUrl) return
+            if (!manualUrl.includes('linkedin.com')) {
+                return alert("Please provide a valid LinkedIn link (e.g., linkedin.com/jobs/view/...)")
+            }
+            jobUrl = manualUrl
+        }
+        
+        setApplyingLinkedin(true)
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            const token = session?.access_token || ''
+            
+            console.log(`[LinkedIn-Apply] Starting agent for: ${jobUrl}`)
+            const result = await aiService.applyToLinkedIn(user.id, jobUrl, token)
+            
+            if (result.success) {
+                alert('Success: ' + result.message)
+            } else {
+                alert('Bot Progress: ' + result.message)
+            }
+        } catch (e: any) {
+            alert(e.message || 'Failed to start AI agent.')
+        } finally {
+            setApplyingLinkedin(false)
+        }
+    }
+
+    async function handleTailorResume() {
+        if (!user || !id) return
+        setTailoring(true)
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            const token = session?.access_token || ''
+            const result = await aiService.tailorResume(user.id, id, token)
+            setTailoredResume(result.tailored_resume)
+        } catch (e: any) {
+            alert(e.message || 'Failed to tailor resume. Make sure you have saved your profile with resume text.')
+        } finally {
+            setTailoring(false)
+        }
+    }
+
+    async function handleGenerateColdEmail() {
+        if (!user || !id) return
+        setGeneratingEmail(true)
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            const token = session?.access_token || ''
+            const result = await aiService.generateColdEmail(user.id, id, token)
+            setColdEmail(result)
+        } catch (e: any) {
+            alert(e.message || 'Failed to generate email.')
+        } finally {
+            setGeneratingEmail(false)
+        }
+    }
+
+    function copyToClipboard(text: string) {
+        navigator.clipboard.writeText(text)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
     }
 
     if (loading) {
@@ -177,7 +264,7 @@ export function JobDetail() {
                         </div>
 
                         {(!profile || profile?.role === 'candidate') && (
-                            <div className="mt-8 pt-8 border-t border-border">
+                            <div className="mt-8 pt-8 border-t border-border space-y-4">
                                 <Button
                                     onClick={handleApply}
                                     disabled={isApplied || applying}
@@ -185,6 +272,63 @@ export function JobDetail() {
                                 >
                                     {applying ? 'Applying...' : isApplied ? 'Application Sent' : 'Apply for this Position'}
                                 </Button>
+
+                                {/* AI Action Buttons */}
+                                <div className="flex flex-wrap gap-3 pt-2">
+                                    <button onClick={handleAutoApplyLinkedIn} disabled={applyingLinkedin}
+                                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600/20 to-blue-600/20 border border-cyan-500/40 hover:from-cyan-600/30 hover:to-blue-600/30 text-cyan-300 text-sm rounded-lg transition-all disabled:opacity-40 animate-pulse-subtle">
+                                        <Wand2 className="w-4 h-4" />
+                                        {applyingLinkedin ? 'Bot Running...' : 'Autonomous Apply (LinkedIn)'}
+                                    </button>
+                                    <button onClick={handleTailorResume} disabled={tailoring}
+                                        className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 border border-purple-500/40 hover:bg-purple-600/30 text-purple-300 text-sm rounded-lg transition-all disabled:opacity-40">
+                                        <Wand2 className="w-4 h-4" />
+                                        {tailoring ? 'Tailoring...' : 'Tailor Resume'}
+                                    </button>
+                                    <button onClick={handleGenerateColdEmail} disabled={generatingEmail}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 border border-blue-500/40 hover:bg-blue-600/30 text-blue-300 text-sm rounded-lg transition-all disabled:opacity-40">
+                                        <Mail className="w-4 h-4" />
+                                        {generatingEmail ? 'Generating...' : 'Generate Cold Email'}
+                                    </button>
+                                </div>
+
+                                {/* Tailored Resume Result */}
+                                {tailoredResume && (
+                                    <div className="bg-black/40 border border-purple-500/30 rounded-lg p-4">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h3 className="text-sm font-medium text-purple-300">Tailored Resume</h3>
+                                            <button onClick={() => copyToClipboard(tailoredResume)}
+                                                className="flex items-center gap-1 text-xs text-muted hover:text-foreground transition-colors">
+                                                {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                                                {copied ? 'Copied!' : 'Copy'}
+                                            </button>
+                                        </div>
+                                        <pre className="whitespace-pre-wrap text-xs text-muted leading-relaxed max-h-64 overflow-y-auto">
+                                            {tailoredResume}
+                                        </pre>
+                                    </div>
+                                )}
+
+                                {/* Cold Email Result */}
+                                {coldEmail && (
+                                    <div className="bg-black/40 border border-blue-500/30 rounded-lg p-4">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h3 className="text-sm font-medium text-blue-300">Cold Email Draft</h3>
+                                            <button onClick={() => copyToClipboard(`Subject: ${coldEmail.subject}\n\n${coldEmail.body}`)}
+                                                className="flex items-center gap-1 text-xs text-muted hover:text-foreground transition-colors">
+                                                {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                                                {copied ? 'Copied!' : 'Copy'}
+                                            </button>
+                                        </div>
+                                        {coldEmail.hiring_manager_email && (
+                                            <p className="text-xs text-green-400 mb-2">To: {coldEmail.hiring_manager_email}</p>
+                                        )}
+                                        <p className="text-xs font-medium text-foreground mb-2">Subject: {coldEmail.subject}</p>
+                                        <pre className="whitespace-pre-wrap text-xs text-muted leading-relaxed">
+                                            {coldEmail.body}
+                                        </pre>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

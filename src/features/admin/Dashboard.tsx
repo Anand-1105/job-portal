@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Users, Briefcase, FileText, UserCheck, Building, TrendingUp, Activity } from 'lucide-react'
+import { Users, Briefcase, FileText, UserCheck, Building, TrendingUp, Activity, Brain, RefreshCw } from 'lucide-react'
 import { getPlatformStats, type PlatformStats } from '@/lib/adminService'
 
 export function AdminDashboard() {
@@ -14,6 +14,8 @@ export function AdminDashboard() {
         openJobs: 0,
     })
     const [loading, setLoading] = useState(true)
+    const [scraping, setScraping] = useState(false)
+    const [scrapeMsg, setScrapeMsg] = useState('')
 
     useEffect(() => {
         fetchStats()
@@ -30,13 +32,43 @@ export function AdminDashboard() {
         }
     }
 
+    async function handleScrapeJobs() {
+        setScraping(true)
+        setScrapeMsg('')
+        try {
+            const { supabase } = await import('@/lib/supabase')
+            const { aiService } = await import('@/lib/aiService')
+            const { data: { session } } = await supabase.auth.getSession()
+            const token = session?.access_token || ''
+            const result = await aiService.scrapeJobs('software engineer', 'India', token)
+            setScrapeMsg(`✓ Imported ${result.inserted} jobs from LinkedIn`)
+            fetchStats()
+        } catch (e: any) {
+            setScrapeMsg(`✗ ${e.message || 'Scrape failed'}`)
+        } finally {
+            setScraping(false)
+        }
+    }
+
     return (
         <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 md:px-12 lg:px-24 py-12">
                 {/* Header */}
                 <div className="mb-12">
-                    <h1 className="text-4xl font-serif mb-2">Admin Dashboard</h1>
-                    <p className="text-muted">Platform overview and management</p>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-4xl font-serif mb-2">Admin Dashboard</h1>
+                            <p className="text-muted">Platform overview and management</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                            <button onClick={handleScrapeJobs} disabled={scraping}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 transition-colors text-sm">
+                                <RefreshCw className={`w-4 h-4 ${scraping ? 'animate-spin' : ''}`} />
+                                {scraping ? 'Scraping LinkedIn...' : 'Sync LinkedIn Jobs'}
+                            </button>
+                            {scrapeMsg && <p className="text-xs text-muted">{scrapeMsg}</p>}
+                        </div>
+                    </div>
                 </div>
 
                 {loading ? (
@@ -162,6 +194,31 @@ export function AdminDashboard() {
                                 </p>
                                 <div className="mt-4 text-sm text-purple-400 group-hover:text-purple-300 transition-colors flex items-center gap-1">
                                     <span>View Jobs</span>
+                                    <span>→</span>
+                                </div>
+                            </Link>
+
+                            {/* TPC Intelligence */}
+                            <Link
+                                to="/admin/tpc"
+                                className="group bg-surface border border-border rounded-lg p-8 hover:border-purple-500/50 transition-all duration-300"
+                            >
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="p-4 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg">
+                                        <Brain className="w-8 h-8 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-semibold group-hover:text-purple-400 transition-colors">
+                                            TPC Intelligence
+                                        </h3>
+                                        <p className="text-sm text-muted">AI placement panel</p>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-muted/80">
+                                    Student segmentation, placement probability scores, and one-click interventions
+                                </p>
+                                <div className="mt-4 text-sm text-purple-400 group-hover:text-purple-300 transition-colors flex items-center gap-1">
+                                    <span>Open Panel</span>
                                     <span>→</span>
                                 </div>
                             </Link>
