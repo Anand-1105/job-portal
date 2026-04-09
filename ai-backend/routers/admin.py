@@ -23,60 +23,66 @@ async def tpc_intelligence(user_id: str = Depends(get_user_id)):
 
     candidates = []
     for r in results.data:
-        candidate_id = r["candidate_id"]
+        try:
+            candidate_id = r["candidate_id"]
 
-        # Fetch profile name
-        profile = db.table("profiles").select("full_name").eq("id", candidate_id).single().execute()
-        name = profile.data["full_name"] if profile.data else "Unknown"
+            # Fetch profile name
+            profile = db.table("profiles").select("full_name").eq("id", candidate_id).single().execute()
+            name = profile.data["full_name"] if profile.data else "Unknown"
 
-        # Count applications
-        apps = db.table("applications").select("id").eq("candidate_id", candidate_id).execute()
-        app_count = len(apps.data) if apps.data else 0
+            # Count applications
+            apps = db.table("applications").select("id").eq("candidate_id", candidate_id).execute()
+            app_count = len(apps.data) if apps.data else 0
 
-        # Avg compatibility score
-        compat = db.table("job_compatibility").select("score").eq("candidate_id", candidate_id).execute()
-        scores = [c["score"] for c in compat.data if c["score"] is not None] if compat.data else []
-        avg_compat = sum(scores) / len(scores) if scores else 0
+            # Avg compatibility score
+            compat = db.table("job_compatibility").select("score").eq("candidate_id", candidate_id).execute()
+            compat_scores = [c["score"] for c in compat.data if c["score"] is not None] if compat.data else []
+            avg_compat = sum(compat_scores) / len(compat_scores) if compat_scores else 0
 
-        # Fetch Interview Scores
-        int_res = db.table("interview_results").select("overall_score").eq("candidate_id", candidate_id).order("created_at", desc=True).limit(1).execute()
-        latest_int_score = int_res.data[0]["overall_score"] if int_res.data else 0
+            # Historical technical scores from assessments
+            # Total avg from all completed assessments
+            assessments = db.table("assessments").select("score").eq("candidate_id", candidate_id).eq("status", "completed").execute()
+            tech_scores = [a["score"] for a in assessments.data if a["score"] is not None] if assessments.data else []
+            latest_int_score = round(sum(tech_scores) / len(tech_scores)) if tech_scores else r.get("overall_score", 0)
 
-        # Fetch Video Interview Scores
-        vid_res = db.table("video_interviews").select("scores_json, proctoring_metadata").eq("candidate_id", candidate_id).order("created_at", desc=True).limit(1).execute()
-        vid_data = vid_res.data[0] if vid_res.data else {}
-        vid_scores = vid_data.get("scores_json", {})
-        proctoring = vid_data.get("proctoring_metadata", {})
-        
-        video_tech = vid_scores.get("technical_depth", 0)
-        video_comm = vid_scores.get("communication_score", 0)
+            # Fetch Video Interview Scores
+            vid_res = db.table("video_interviews").select("scores_json, proctoring_metadata").eq("candidate_id", candidate_id).order("created_at", desc=True).limit(1).execute()
+            vid_data = vid_res.data[0] if (vid_res.data and len(vid_res.data) > 0) else {}
+            vid_scores = vid_data.get("scores_json", {}) or {}
+            proctoring = vid_data.get("proctoring_metadata", {}) or {}
+            
+            video_tech = vid_scores.get("technical_depth", 0)
+            video_comm = vid_scores.get("communication_score", 0)
 
-        # Run placement chain
-        placement = await score_placement(
-            tier=r["tier"],
-            skill_scores=r.get("skill_scores", {}),
-            application_count=app_count,
-            avg_compatibility=avg_compat,
-            interview_score=latest_int_score,
-            video_tech=video_tech,
-            video_comm=video_comm
-        )
+            # Run placement chain
+            placement = await score_placement(
+                tier=r["tier"],
+                skill_scores=r.get("skill_scores", {}),
+                application_count=app_count,
+                avg_compatibility=avg_compat,
+                interview_score=latest_int_score,
+                video_tech=video_tech,
+                video_comm=video_comm
+            )
 
-        candidates.append({
-            "id": candidate_id,
-            "name": name,
-            "tier": r["tier"],
-            "overall_score": r["overall_score"],
-            "interview_score": latest_int_score,
-            "video_tech": video_tech,
-            "video_comm": video_comm,
-            "proctoring": proctoring, # Include proctoring data
-            "placement_probability": placement["placement_probability"],
-            "segment": placement["segment"],
-            "intervention": placement["intervention"],
-            "application_count": app_count,
-            "avg_compatibility": round(avg_compat, 1)
-        })
+            candidates.append({
+                "id": candidate_id,
+                "name": name,
+                "tier": r["tier"],
+                "overall_score": r.get("overall_score", 0),
+                "interview_score": latest_int_score,
+                "video_tech": video_tech,
+                "video_comm": video_comm,
+                "proctoring": proctoring,
+                "placement_probability": placement["placement_probability"],
+                "segment": placement["segment"],
+                "intervention": placement["intervention"],
+                "application_count": app_count,
+                "avg_compatibility": round(avg_compat, 1)
+            })
+        except Exception as e:
+            print(f"[TPC-Intel] Skipping candidate {r.get('candidate_id')}: {e}")
+            continue
 
     # Sort by placement probability ascending (most at-risk first)
     candidates.sort(key=lambda x: x["placement_probability"])
