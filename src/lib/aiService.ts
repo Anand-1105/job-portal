@@ -51,6 +51,20 @@ async function aiGet(endpoint: string, token: string) {
   return data
 }
 
+async function aiDelete(endpoint: string, token: string) {
+  console.log(`[AI-Service] DELETE ${endpoint}`)
+  const res = await fetch(`${AI_BASE}${endpoint}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` }
+  })
+  if (!res.ok) {
+    const errText = await res.text()
+    console.error(`[AI-Service] DELETE ${endpoint} failed:`, errText)
+    throw new Error(errText)
+  }
+  return await res.json()
+}
+
 
 export const aiService = {
   saveProfile: (data: object, token: string) =>
@@ -92,7 +106,7 @@ export const aiService = {
     aiGet('/roadmap/list', token),
 
   deleteRoadmap: (id: string, token: string) => 
-    aiGet(`/roadmap/delete/${id}`, token),
+    aiDelete(`/roadmap/${id}`, token),
 
   intervene: (candidateId: string, message: string, token: string) =>
     aiPost('/admin/intervene', { candidate_id: candidateId, message }, token),
