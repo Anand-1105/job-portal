@@ -7,6 +7,7 @@
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS hiring_manager_email text;
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS requirements text;
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS source_url text;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS company text DEFAULT 'Unknown Company';
 
 -- 2. Candidate skill profile
 CREATE TABLE IF NOT EXISTS candidate_profiles (

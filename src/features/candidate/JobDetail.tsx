@@ -210,8 +210,7 @@ export function JobDetail() {
                                     {job.title}
                                 </h1>
                                 <div className="flex items-center gap-2 text-muted mb-4">
-                                    <Building2 className="w-4 h-4 text-purple-400" />
-                                    <span className="font-medium">Company Name</span>
+                                    <span className="font-medium">{(job as any).company || 'Unknown Company'}</span>
                                 </div>
                             </div>
 

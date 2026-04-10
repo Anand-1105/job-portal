@@ -16,54 +16,70 @@ async def tpc_intelligence(user_id: str = Depends(get_user_id)):
 
     db = get_supabase()
 
+    # DIAGNOSTIC COUNTS
+    raw_results = db.table("readiness_results").select("id").execute()
+    raw_profiles = db.table("profiles").select("id").execute()
+    
     # Fetch all readiness results
     results = db.table("readiness_results").select("*").execute()
+    
     if not results.data:
-        return {"candidates": []}
+        return {
+            "version": "v4.0.6-sync-debug",
+            "candidates": [],
+            "debug_counts": {
+                "readiness": len(raw_results.data),
+                "profiles": len(raw_profiles.data)
+            }
+        }
 
     candidates = []
+    debug_errors = []
     for r in results.data:
         try:
             candidate_id = r["candidate_id"]
 
             # Fetch profile name
-            profile = db.table("profiles").select("full_name").eq("id", candidate_id).single().execute()
-            name = profile.data["full_name"] if profile.data else "Unknown"
+            profile_res = db.table("profiles").select("*").eq("id", candidate_id).execute()
+            name = profile_res.data[0]["full_name"] if (profile_res.data and len(profile_res.data) > 0) else "Unknown"
 
             # Count applications
-            apps = db.table("applications").select("id").eq("candidate_id", candidate_id).execute()
-            app_count = len(apps.data) if apps.data else 0
+            apps_res = db.table("applications").select("*").eq("candidate_id", candidate_id).execute()
+            app_count = len(apps_res.data) if apps_res.data else 0
 
             # Avg compatibility score
-            compat = db.table("job_compatibility").select("score").eq("candidate_id", candidate_id).execute()
-            compat_scores = [c["score"] for c in compat.data if c["score"] is not None] if compat.data else []
+            compat_res = db.table("job_compatibility").select("*").eq("candidate_id", candidate_id).execute()
+            compat_scores = [c.get("score", 0) for c in compat_res.data if c.get("score") is not None] if (compat_res.data) else []
             avg_compat = sum(compat_scores) / len(compat_scores) if compat_scores else 0
 
             # Historical technical scores from assessments
-            # Total avg from all completed assessments
-            assessments = db.table("assessments").select("score").eq("candidate_id", candidate_id).eq("status", "completed").execute()
-            tech_scores = [a["score"] for a in assessments.data if a["score"] is not None] if assessments.data else []
+            assessments_res = db.table("assessments").select("*").eq("candidate_id", candidate_id).eq("status", "completed").execute()
+            tech_scores = [a.get("score", 0) for a in assessments_res.data if a.get("score") is not None] if (assessments_res.data) else []
             latest_int_score = round(sum(tech_scores) / len(tech_scores)) if tech_scores else r.get("overall_score", 0)
 
             # Fetch Video Interview Scores
-            vid_res = db.table("video_interviews").select("scores_json, proctoring_metadata").eq("candidate_id", candidate_id).order("created_at", desc=True).limit(1).execute()
+            vid_res = db.table("video_interviews").select("*").eq("candidate_id", candidate_id).order("created_at", desc=True).limit(1).execute()
             vid_data = vid_res.data[0] if (vid_res.data and len(vid_res.data) > 0) else {}
             vid_scores = vid_data.get("scores_json", {}) or {}
-            proctoring = vid_data.get("proctoring_metadata", {}) or {}
+            proctoring = vid_data.get("proctoring_metadata", {}) or vid_data.get("proctoring", {}) or {}
             
             video_tech = vid_scores.get("technical_depth", 0)
             video_comm = vid_scores.get("communication_score", 0)
 
             # Run placement chain
-            placement = await score_placement(
-                tier=r["tier"],
-                skill_scores=r.get("skill_scores", {}),
-                application_count=app_count,
-                avg_compatibility=avg_compat,
-                interview_score=latest_int_score,
-                video_tech=video_tech,
-                video_comm=video_comm
-            )
+            try:
+                placement = await score_placement(
+                    tier=r["tier"],
+                    skill_scores=r.get("skill_scores", {}),
+                    application_count=app_count,
+                    avg_compatibility=avg_compat,
+                    interview_score=latest_int_score,
+                    video_tech=video_tech,
+                    video_comm=video_comm
+                )
+            except Exception as ae:
+                debug_errors.append(f"AI Error for {candidate_id}: {ae}")
+                placement = {"placement_probability": 0, "segment": "Unprepared", "intervention": "AI calculation failed."}
 
             candidates.append({
                 "id": candidate_id,
@@ -81,13 +97,19 @@ async def tpc_intelligence(user_id: str = Depends(get_user_id)):
                 "avg_compatibility": round(avg_compat, 1)
             })
         except Exception as e:
-            print(f"[TPC-Intel] Skipping candidate {r.get('candidate_id')}: {e}")
+            debug_errors.append(f"Critical loop error for {r.get('candidate_id')}: {str(e)}")
             continue
 
     # Sort by placement probability ascending (most at-risk first)
     candidates.sort(key=lambda x: x["placement_probability"])
 
-    return {"candidates": candidates}
+    return {
+        "version": "v4.0.8-total-visibility", 
+        "candidates": candidates,
+        "debug_errors": debug_errors,
+        "results_count": len(results.data),
+        "raw_ids": [r.get("candidate_id") for r in results.data]
+    }
 
 
 @router.post("/intervene")
@@ -107,7 +129,7 @@ async def intervene(payload: IntervenePayload, user_id: str = Depends(get_user_i
         resend.api_key = os.environ.get("RESEND_API_KEY", "")
         resend.Emails.send({
             "from": "Chosen Placement Team <noreply@chosen.app>",
-            "to": email_addr,
+            "to": "anand01ts@gmail.com",
             "subject": "Your placement coordinator has a message for you",
             "html": f"""
             <h2>Message from your Placement Coordinator</h2>

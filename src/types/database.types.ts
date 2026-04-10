@@ -49,6 +49,7 @@ export interface Database {
                     requirements: string | null
                     hiring_manager_email: string | null
                     source_url: string | null
+                    company: string | null
                     created_at: string
                 }
                 Insert: {

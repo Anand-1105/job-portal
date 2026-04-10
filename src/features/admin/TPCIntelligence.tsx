@@ -97,7 +97,16 @@ export function TPCIntelligence() {
         {loading ? (
           <div className="text-center py-20 text-muted">Computing placement scores...</div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-20 text-muted">No candidates found.</div>
+          <div className="text-center py-20 bg-surface/30 rounded-2xl border border-dashed border-border">
+            <div className="text-muted mb-4 font-serif">Aria found zero candidates in this segment.</div>
+            {(candidates as any).debug_errors && (candidates as any).debug_errors.length > 0 && (
+              <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-left max-w-xl mx-auto rounded-lg overflow-auto max-h-40">
+                <p className="font-bold mb-2 uppercase tracking-widest text-[10px]">System Debug Log:</p>
+                {(candidates as any).debug_errors.map((e: string, i: number) => <p key={i}>• {e}</p>)}
+              </div>
+            )}
+            <p className="text-[10px] text-muted mt-4">API Version: {(candidates as any).version || 'Legacy'}</p>
+          </div>
         ) : (
           <div className="grid gap-4">
             {filtered.map(c => {
