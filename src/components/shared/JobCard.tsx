@@ -44,7 +44,6 @@ export function JobCard({ job, onApply, isApplied = false, showApplyButton = tru
                             )}
                         </div>
                         <h3 className="text-xl font-bold text-foreground group-hover:text-purple-300 transition-colors mb-1">{job.title}</h3>
-                        <p className="text-muted font-medium">{(job as any).company || 'Unknown Company'}</p>
                     </div>
                 </div>
                 <p className="text-muted mb-6 line-clamp-2">{job.description}</p>

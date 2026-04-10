@@ -209,9 +209,6 @@ export function JobDetail() {
                                 <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent mb-2">
                                     {job.title}
                                 </h1>
-                                <div className="flex items-center gap-2 text-muted mb-4">
-                                    <span className="font-medium">{(job as any).company || 'Unknown Company'}</span>
-                                </div>
                             </div>
 
                             {(!profile || profile?.role === 'candidate') && (
